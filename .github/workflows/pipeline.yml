@@ -19,7 +19,7 @@ jobs:
 
     - name: Build Docker Image
       run: |
-        docker build -t payday-api ./app/api
+        docker build -f ./payday-devops/app/frontend/Dockerfile.prod -t payday-api ./app/api
 
     - name: Run Trivy Vulnerability Scan
       run: |
