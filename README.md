@@ -16,5 +16,6 @@ Terraform code to provision:
 
 terraform init
 terraform plan
+terraform validate
 terraform apply
 >>>>>>> 9296214a61fb93cdd12c374af5acec8d9f3da2d6
