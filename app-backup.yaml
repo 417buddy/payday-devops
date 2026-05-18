@@ -1,0 +1,89 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"argoproj.io/v1alpha1","kind":"Application","metadata":{"annotations":{},"name":"payday-api","namespace":"argocd"},"spec":{"destination":{"namespace":"default","server":"https://kubernetes.default.svc"},"project":"default","source":{"helm":{"valueFiles":["values.yaml"]},"path":"payday-api","repoURL":"https://github.com/mykaelHunter/payday-devops.git","targetRevision":"main"},"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}
+  creationTimestamp: "2026-05-16T16:46:20Z"
+  generation: 108
+  name: payday-api
+  namespace: argocd
+  resourceVersion: "344087"
+  uid: a14a641e-679e-43d4-8fee-b577159f1a00
+spec:
+  destination:
+    namespace: default
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    helm:
+      valueFiles:
+      - values.yaml
+    path: payday-api
+    repoURL: https://github.com/mykaelHunter/payday-devops.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+status:
+  conditions:
+  - lastTransitionTime: "2026-05-18T09:13:50Z"
+    message: 'Failed to load target state: failed to generate manifest for source
+      1 of 1: rpc error: code = Unknown desc = Manifest generation error (cached):
+      payday-api: app path does not exist'
+    type: ComparisonError
+  controllerNamespace: argocd
+  health:
+    lastTransitionTime: "2026-05-16T16:46:21Z"
+    status: Healthy
+  operationState:
+    finishedAt: "2026-05-18T09:29:04Z"
+    message: 'ComparisonError: Failed to load target state: failed to generate manifest
+      for source 1 of 1: rpc error: code = Unknown desc = Manifest generation error
+      (cached): payday-api: app path does not exist'
+    operation:
+      initiatedBy:
+        username: admin
+      retry: {}
+      sync:
+        revision: 01c99291700900fa744ec908b550bf403fa4d148
+        source:
+          helm:
+            valueFiles:
+            - values.yaml
+          path: payday-api
+          repoURL: https://github.com/mykaelHunter/payday-devops.git
+          targetRevision: main
+        syncStrategy:
+          hook:
+            force: true
+    phase: Error
+    startedAt: "2026-05-18T09:29:04Z"
+    syncResult:
+      revision: 01c99291700900fa744ec908b550bf403fa4d148
+      source:
+        helm:
+          valueFiles:
+          - values.yaml
+        path: payday-api
+        repoURL: https://github.com/mykaelHunter/payday-devops.git
+        targetRevision: main
+  reconciledAt: "2026-05-18T09:32:01Z"
+  resourceHealthSource: appTree
+  sourceHydrator: {}
+  summary: {}
+  sync:
+    comparedTo:
+      destination:
+        namespace: default
+        server: https://kubernetes.default.svc
+      source:
+        helm:
+          valueFiles:
+          - values.yaml
+        path: payday-api
+        repoURL: https://github.com/mykaelHunter/payday-devops.git
+        targetRevision: main
+    revision: main
+    status: Unknown
