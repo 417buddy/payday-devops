@@ -25,5 +25,5 @@ class TestConfig(Config):
         f"{os.environ.get('DATABASE_HOST', 'localhost')}:"
         f"{os.environ.get('DATABASE_PORT', '5432')}/"
         f"{os.environ.get('DATABASE_NAME', 'payday_test')}"
-        f"?sslmode=prefer"
+        f"?sslmode=disable"
     )
