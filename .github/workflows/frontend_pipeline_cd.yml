@@ -36,8 +36,8 @@ jobs:
           cache-dependency-path: payday-devops/app/frontend/package-lock.json
 
       - name: Install dependencies & run tests
+        working-directory: payday-devops/app/frontend
         run: |
-          cd payday-devops/app/frontend
           npm ci
           npm run test
           npm run lint

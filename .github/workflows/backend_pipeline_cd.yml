@@ -66,7 +66,10 @@ jobs:
           flake8 app/ run.py --max-line-length=120 --exclude=__pycache__,migrations
 
       - name: Run migrations for test DB
-        run: flask --app run db upgrade
+        working-directory: '${{env.WORKING_DIR}}'
+        env:
+          PYTHONPATH: .
+        run: flask --app backend.run db upgrade
         env:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
