@@ -37,6 +37,7 @@ jobs:
 
       - name: Install dependencies & run tests
         run: |
+          cd payday-devops/app/frontend
           npm ci
           npm run test:unit
           npm run test:integration
