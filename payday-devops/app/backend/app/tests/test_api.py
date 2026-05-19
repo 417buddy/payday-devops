@@ -3,7 +3,7 @@ from app import create_app
 from app.config import TestConfig
 
 API_KEY = "brk_live_abc123"
-AUTH    = {"Authorization": f"Bearer {API_KEY}"}
+AUTH = {"Authorization": f"Bearer {API_KEY}"}
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def test_create_transaction_invalid(client):
 def test_get_transaction(client):
     payload = {"amount": 50.0, "method": "transfer", "currency": "USD"}
     created = client.post("/api/v1/transactions", json=payload, headers=AUTH).json
-    txn_id  = created["transaction"]["id"]
+    txn_id = created["transaction"]["id"]
 
     r = client.get(f"/api/v1/transactions/{txn_id}", headers=AUTH)
     assert r.status_code == 200

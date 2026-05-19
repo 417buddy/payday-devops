@@ -7,7 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run --coverage || echo 'no tests configured'",
-    "lint": "eslint src --ext .js,.jsx"
+    "lint": "eslint ."
   },
   "dependencies": {
     "react": "^18.3.0",
