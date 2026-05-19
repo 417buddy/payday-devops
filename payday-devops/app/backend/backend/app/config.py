@@ -1,20 +1,18 @@
 import os
 
-
 class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
+    SECRET_KEY      = os.environ.get("SECRET_KEY", "dev-secret")
     ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
 
     @staticmethod
     def get_sqlalchemy_url():
-        user = os.environ.get("DATABASE_USER", "postgres")
+        user     = os.environ.get("DATABASE_USER", "postgres")
         password = os.environ.get("DATABASE_PASSWORD", "postgres")
-        host = os.environ.get("DATABASE_HOST", "localhost")
-        port = os.environ.get("DATABASE_PORT", "5432")
-        name = os.environ.get("DATABASE_NAME", "payday")
+        host     = os.environ.get("DATABASE_HOST", "localhost")
+        port     = os.environ.get("DATABASE_PORT", "5432")
+        name     = os.environ.get("DATABASE_NAME", "payday")
         return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode=require"
-
 
 class TestConfig(Config):
     TESTING = True

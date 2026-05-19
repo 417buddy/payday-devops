@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -15,15 +16,15 @@ def create_app(config=Config):
     CORS(app, origins=app.config["ALLOWED_ORIGINS"])
 
     from .routes.transactions import bp as transactions_bp
-    from .routes.analytics import bp as analytics_bp
-    from .routes.webhooks import bp as webhooks_bp
-    from .routes.health import bp as health_bp
-    from .routes.merchant import bp as merchant_bp
+    from .routes.analytics    import bp as analytics_bp
+    from .routes.webhooks     import bp as webhooks_bp
+    from .routes.health       import bp as health_bp
+    from .routes.merchant     import bp as merchant_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(transactions_bp, url_prefix="/api/v1")
-    app.register_blueprint(analytics_bp, url_prefix="/api/v1")
-    app.register_blueprint(webhooks_bp, url_prefix="/api/v1")
-    app.register_blueprint(merchant_bp, url_prefix="/api/v1")
+    app.register_blueprint(analytics_bp,    url_prefix="/api/v1")
+    app.register_blueprint(webhooks_bp,     url_prefix="/api/v1")
+    app.register_blueprint(merchant_bp,     url_prefix="/api/v1")
 
     return app
