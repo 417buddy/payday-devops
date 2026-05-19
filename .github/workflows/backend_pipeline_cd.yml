@@ -67,10 +67,9 @@ jobs:
 
       - name: Run migrations for test DB
         working-directory: '${{env.WORKING_DIR}}'
-        env:
-          PYTHONPATH: .
         run: flask --app backend.run db upgrade
         env:
+          PYTHONPATH: .
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           DATABASE_NAME: payday_test

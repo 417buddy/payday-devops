@@ -39,7 +39,7 @@ jobs:
         working-directory: payday-devops/app/frontend
         run: |
           npm ci
-          npm run test
+          npm test
           npm run lint
 
       - name: Run SAST (CodeQL)
