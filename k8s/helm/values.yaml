@@ -7,7 +7,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: 464453620032.dkr.ecr.us-east-2.amazonaws.com/payday-app
+  repository: 464453620032.dkr.ecr.us-east-2.amazonaws.com/payday-api
   # This sets the pull policy for images.
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
