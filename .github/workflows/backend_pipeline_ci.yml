@@ -1,4 +1,4 @@
-name: Payday CI/CD Pipeline
+name: Payday CI Backend Pipeline
 
 on:
   push:
@@ -19,10 +19,11 @@ jobs:
 
     - name: Build Docker Image
       run: |
-        docker build -f ./payday-devops/app/frontend/Dockerfile.prod -t payday-api ./payday-devops/app/frontend
+        docker build -f ./payday-devops/app/backend/Dockerfile.prod -t payday-api ./payday-devops/app/backend
 
     - name: Run Trivy Vulnerability Scan
       run: |
         docker run --rm \
         -v /var/run/docker.sock:/var/run/docker.sock \
         aquasec/trivy image payday-api
+~                                        
