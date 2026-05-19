@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/mykaelHunter/payday-devops.git
     targetRevision: main
-    path: payday-api
+    path: k8s/helm
 
     helm:
       valueFiles:
