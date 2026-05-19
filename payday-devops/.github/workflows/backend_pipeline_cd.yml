@@ -1,0 +1,309 @@
+name: Payday CI/CD Backend Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'payday-devops/app/backend/**'
+      - '.github/workflows/backend_pipeline_cd.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'payday-devops/app/backend/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/payday-api
+  CLUSTER_NAME: payday-cluster
+  AWS_REGION: us-east-2
+  PYTHON_VERSION: '3.11'
+  WORKING_DIR: payday-devops/app/backend
+
+jobs:
+  # [SECURITY & QUALITY GATES]
+  test-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # For CodeQL/SARIF
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: payday_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: '${{ env.WORKING_DIR }}/requirements-dev.txt'
+
+      - name: Install dependencies (dev + app)
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          flake8 app/ run.py --max-line-length=120 --exclude=__pycache__,migrations
+
+      - name: Run migrations for test DB
+        run: flask --app run db upgrade
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: payday_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          SECRET_KEY: ci-test-secret
+
+      - name: Run tests with pytest + coverage
+        # TestConfig now uses Postgres - mirrors production config
+        run: |
+          coverage run -m pytest tests/ -v --tb=short
+          coverage report --fail-under=70
+          coverage xml -o coverage.xml
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: ci-test-secret
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: payday_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ${{ env.WORKING_DIR }}/coverage.xml
+
+      - name: Run SAST (CodeQL)
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          source-root: ${{ env.WORKING_DIR }}
+
+      - uses: github/codeql-action/analyze@v3
+
+      - name: Build Docker image (multi-stage)
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            -f Dockerfile.prod .
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1' # Fail pipeline on critical/high CVEs
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Sign image with Cosign (keyless)
+        uses: sigstore/cosign-installer@v3
+
+      - run: |
+          cosign sign --yes \
+            -a "github_actor=${{ github.actor }}" \
+            -a "run_id=${{ github.run_id }}" \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # [DEPLOYMENT PIPELINE - STAGING]
+  deploy-staging:
+    needs: test-and-scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    permissions:
+      contents: write
+      id-token: write # For OIDC to AWS
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-oidc
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to registry
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Run Alembic migrations (staging)
+        # Mirrors docker-entrypoint.sh: waits for DB, then runs `flask --app run db upgrade`
+        run: |
+          kubectl run migration-${{ github.run_id }} \
+            --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --restart=Never \
+            --env="DATABASE_HOST=${{ secrets.STAGING_DB_HOST }}" \
+            --env="DATABASE_PORT=5432" \
+            --env="DATABASE_NAME=${{ secrets.STAGING_DB_NAME }}" \
+            --env="DATABASE_USER=${{ secrets.STAGING_DB_USER }}" \
+            --env="DATABASE_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}" \
+            --env="SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }}" \
+            -n staging \
+            --command -- sh -c "flask --app run db upgrade"
+          kubectl wait --for=condition=Completed \
+            pod/migration-${{ github.run_id }} \
+            -n staging --timeout=120s
+          kubectl logs migration-${{ github.run_id }} -n staging
+          kubectl delete pod migration-${{ github.run_id }} -n staging
+
+      - name: Update Helm values for staging
+        run: |
+          yq -i '.image.tag = "${{ github.sha }}"' \
+            charts/payday-api/values-staging.yaml
+
+      - name: Commit GitOps manifest (Argo CD auto-sync)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update backend staging image to ${{ github.sha }}"
+          file_pattern: 'charts/payday-api/values-staging.yaml'
+          branch: gitops-main
+
+      - name: Wait for Argo CD staging sync
+        uses: argoproj/argo-cd-action@v0.4.0
+        with:
+          server: ${{ secrets.ARGOCD_SERVER }}
+          token: ${{ secrets.ARGOCD_TOKEN }}
+          app: payday-api-staging
+          command: app wait --health --timeout 120
+
+      - name: Smoke test staging - /health & /ready
+        # Matches the actual endpoints defined in app/routes/health.py
+        run: |
+          echo "Smoke testing ${{ secrets.STAGING_API_URL }}"
+          curl --fail --silent "${{ secrets.STAGING_API_URL }}/health" \
+            | jq -e '.status == "ok"'
+          curl --fail --silent "${{ secrets.STAGING_API_URL }}/ready" \
+            | jq -e '.ready == true'
+
+  # [PRODUCTION PROMOTION - Manual Approval + Canary]
+  promote-to-prod:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production # Requires manual approval in GitHub UI
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}-gitops
+          ref: gitops-main
+          token: ${{ secrets.GITOPS_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-oidc
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run Alembic migrations (production)
+        run: |
+          kubectl run migration-prod-${{ github.run_id }} \
+            --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --restart=Never \
+            --env="DATABASE_HOST=${{ secrets.PROD_DB_HOST }}" \
+            --env="DATABASE_PORT=5432" \
+            --env="DATABASE_NAME=${{ secrets.PROD_DB_NAME }}" \
+            --env="DATABASE_USER=${{ secrets.PROD_DB_USER }}" \
+            --env="DATABASE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" \
+            --env="SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" \
+            -n prod \
+            --command -- sh -c "flask --app run db upgrade"
+          kubectl wait --for=condition=Completed \
+            pod/migration-prod-${{ github.run_id }} \
+            -n prod --timeout=180s
+          kubectl logs migration-prod-${{ github.run_id }} -n prod
+          kubectl delete pod migration-prod-${{ github.run_id }} -n prod
+
+      - name: Update production Helm values
+        run: |
+          yq -i '.image.tag = "${{ github.sha }}"' \
+            charts/payday-api/values-prod.yaml
+
+      - name: Commit updated production manifest
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: promote backend to prod - ${{ github.sha }}"
+          file_pattern: 'charts/payday-api/values-prod.yaml'
+          branch: gitops-main
+
+      - name: Trigger Argo CD sync for production
+        uses: argoproj/argo-cd-action@v0.4.0
+        with:
+          server: ${{ secrets.ARGOCD_SERVER }}
+          token: ${{ secrets.ARGOCD_TOKEN }}
+          app: payday-api-prod
+          command: app sync --prune
+
+      - name: Wait for canary analysis (Argo Rollouts)
+        run: |
+          for i in {1..30}; do
+            STATUS=$(kubectl get rollout payday-api-prod -n prod -o jsonpath='{.status.phase}')
+            if [ "$STATUS" = "Healthy" ]; then
+              echo "Canary promotion successful"
+              exit 0
+            elif [ "$STATUS" = "Degraded" ]; then
+              echo "Canary failed - triggering auto-rollback"
+              kubectl argo rollouts abort payday-api-prod -n prod
+              exit 1
+            fi
+            sleep 30
+          done
+          echo "Timeout waiting for canary"
+          exit 1
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          STATUS=${{ job.status }}
+          echo "Backend prod deployment finished with status: $STATUS"
+          # Uncomment to wire in Slack notifications:
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+          #   -H "Content-Type: application/json" \
+          #   -d "{\"text\": \"[payday-api] Prod deploy $STATUS - ${{ github.sha }}\"}"
+

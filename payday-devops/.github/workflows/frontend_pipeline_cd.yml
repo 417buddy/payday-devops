@@ -3,14 +3,19 @@ name: Payday CI/CD Frontend Pipeline
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'payday-devops/app/frontend/**'
+      - '.github/workflows/frontend_pipeline_cd.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'payday-devops/app/frontend/**'
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/payments-app
+  IMAGE_NAME: ${{ github.repository }}/payday-app
   CLUSTER_NAME: payday-cluster
-  AWS_REGION: us-east-1
+  AWS_REGION: us-east-2
 
 jobs:
   # 🔒 SECURITY & QUALITY GATES

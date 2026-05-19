@@ -14,7 +14,14 @@ class Config:
         name     = os.environ.get("DATABASE_NAME", "payday")
         return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode=require"
 
-
 class TestConfig(Config):
-    TESTING                 = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = (
+        f"postgresql://"
+        f"{os.environ.get('DATABASE_USER', 'postgres')}:"
+        f"{os.environ.get('DATABASE_PASSWORD', 'postgres')}@"
+        f"{os.environ.get('DATABASE_HOST', 'localhost')}:"
+        f"{os.environ.get('DATABASE_PORT', '5432')}/"
+        f"{os.environ.get('DATABASE_NAME', 'payday_test')}"
+        f"?sslmode=prefer"
+    )
