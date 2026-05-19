@@ -1,4 +1,4 @@
-name: Payday CI/CD Pipeline
+name: Payday CI/CD Frontend Pipeline
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/payments-api
+  IMAGE_NAME: ${{ github.repository }}/payments-app
   CLUSTER_NAME: payday-cluster
   AWS_REGION: us-east-1
 
@@ -148,20 +148,20 @@ jobs:
         with:
           server: ${{ secrets.ARGOCD_SERVER }}
           token: ${{ secrets.ARGOCD_TOKEN }}
-          app: payday-payments-api-prod
+          app: payday-payments-app-prod
           command: app sync --prune
 
       - name: Wait for canary analysis (Argo Rollouts)
         run: |
           # Poll rollout status until stable or failed
           for i in {1..30}; do
-            STATUS=$(kubectl get rollout payday-payments-api-prod -n prod -o jsonpath='{.status.phase}')
+            STATUS=$(kubectl get rollout payday-payments-app-prod -n prod -o jsonpath='{.status.phase}')
             if [ "$STATUS" = "Healthy" ]; then
               echo "✅ Canary promotion successful"
               exit 0
             elif [ "$STATUS" = "Degraded" ]; then
               echo "❌ Canary failed - triggering auto-rollback"
-              kubectl argo rollouts abort payday-payments-api-prod -n prod
+              kubectl argo rollouts abort payday-payments-app-prod -n prod
               exit 1
             fi
             sleep 30
