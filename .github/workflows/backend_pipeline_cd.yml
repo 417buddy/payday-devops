@@ -67,7 +67,10 @@ jobs:
 
       - name: Run migrations for test DB
         working-directory: '${{env.WORKING_DIR}}'
-        run: flask --app run db upgrade
+        run: |
+          export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/payday_test?sslmode=disable"
+          flask --app run db upgrade
+          pytest payday-devops/app/backend/app/tests/test_api.py
         env:
           PYTHONPATH: .
           DATABASE_HOST: localhost
