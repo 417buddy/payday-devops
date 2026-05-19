@@ -1,0 +1,28 @@
+name: Payday CI Frontend Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set Up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker Image
+      run: |
+        docker build -f ./payday-devops/app/frontend/Dockerfile.prod -t payday-app ./payday-devops/app/frontend
+
+    - name: Run Trivy Vulnerability Scan
+      run: |
+        docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        aquasec/trivy image payday-app
