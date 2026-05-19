@@ -39,8 +39,8 @@ jobs:
         run: |
           cd payday-devops/app/frontend
           npm ci
-          npm run test:unit
-          npm run test:integration
+          npm run test
+          npm run lint
 
       - name: Run SAST (CodeQL)
         uses: github/codeql-action/init@v3
