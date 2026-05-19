@@ -20,11 +20,11 @@ def ready():
 @bp.get("/metrics")
 def metrics():
     from ..models.store import _transactions
-    total = len(_transactions)
+    total     = len(_transactions)
     completed = sum(1 for t in _transactions if t["status"] == "completed")
-    failed = sum(1 for t in _transactions if t["status"] == "failed")
-    volume = sum(t["amount"] for t in _transactions if t["status"] == "completed")
-    rate = round(completed / total, 4) if total else 0
+    failed    = sum(1 for t in _transactions if t["status"] == "failed")
+    volume    = sum(t["amount"] for t in _transactions if t["status"] == "completed")
+    rate      = round(completed / total, 4) if total else 0
 
     body = f"""# HELP payday_transactions_total Total transactions
 # TYPE payday_transactions_total counter
