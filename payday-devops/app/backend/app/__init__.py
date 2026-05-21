@@ -8,7 +8,9 @@ from .config import Config
 def create_app(config=Config):
     app = Flask(__name__)
     app.config.from_object(config)
-    app.config["SQLALCHEMY_DATABASE_URI"] = Config.get_sqlalchemy_url()
+    # Only build the URL from parts if the config didn't already provide one
+    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = Config.get_sqlalchemy_url()
 
     db.init_app(app)
     Migrate(app, db)
