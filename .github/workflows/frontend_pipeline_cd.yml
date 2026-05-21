@@ -14,7 +14,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/payday-app
-  CLUSTER_NAME: payday-cluster
+  CLUSTER_NAME: payday-eks
   AWS_REGION: us-east-2
 
 jobs:
