@@ -1,6 +1,8 @@
+import hashlib
 import pytest
 from app import create_app
 from app.config import TestConfig
+from app.models.db import db as _db, Merchant
 
 API_KEY = "brk_live_abc123"
 AUTH = {"Authorization": f"Bearer {API_KEY}"}
@@ -10,8 +12,24 @@ AUTH = {"Authorization": f"Bearer {API_KEY}"}
 def client():
     app = create_app(TestConfig)
     app.config["TESTING"] = True
-    with app.test_client() as c:
-        yield c
+
+    with app.app_context():
+        _db.create_all()
+
+        # Seed a merchant whose hashed key matches API_KEY
+        merchant = Merchant(
+            name="Test Merchant",
+            email="test@example.com",
+            api_key_hash=hashlib.sha256(API_KEY.encode()).hexdigest(),
+            active=True,
+        )
+        _db.session.add(merchant)
+        _db.session.commit()
+
+        with app.test_client() as c:
+            yield c
+
+        _db.drop_all()
 
 
 def test_health(client):

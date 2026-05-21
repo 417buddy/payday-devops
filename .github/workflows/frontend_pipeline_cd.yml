@@ -18,15 +18,29 @@ env:
   AWS_REGION: us-east-2
 
 jobs:
-  # 🔒 SECURITY & QUALITY GATES
-  test-and-scan:
+  # 🔒 SECURITY, QUALITY GATES & BUILD
+  test-and-scan-build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write # For CodeQL/SARIF
+      packages: write        # Required to push to GHCR
+      id-token: write        # Required for Cosign keyless signing
+    outputs:
+      image_name_lower: ${{ steps.downcase.outputs.lowercase }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # Solves scope issue: Convert to lowercase and store as an output AND env
+      - name: Downcase regional variables for Docker
+        id: downcase
+        run: |
+          LOWEST=${IMAGE_NAME,,}
+          echo "lowercase=${LOWEST}" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME_LOWER=${LOWEST}" >> $GITHUB_ENV
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
       - name: Setup Node.js (example app)
         uses: actions/setup-node@v4
@@ -49,17 +63,18 @@ jobs:
       - uses: github/codeql-action/analyze@v3
 
       - name: Build Docker image (multi-stage)
+        working-directory: payday-devops/app/frontend
         run: |
           docker build \
             --build-arg NODE_ENV=production \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:latest \
             -f Dockerfile.prod .
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -71,34 +86,9 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: Sign image with Cosign (keyless)
-        uses: sigstore/cosign-installer@v3
-      - run: |
-          cosign sign --yes \
-            -a "github_actor=${{ github.actor }}" \
-            -a "run_id=${{ github.run_id }}" \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-  # 🚀 DEPLOYMENT PIPELINE
-  deploy-staging:
-    needs: test-and-scan
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
-    permissions:
-      contents: read
-      id-token: write # For OIDC to AWS
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-oidc
-          aws-region: ${{ env.AWS_REGION }}
-
+      # Log in and push here because the built image lives on THIS runner VM
       - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -106,9 +96,33 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push image to registry
+        if: github.event_name != 'pull_request'
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:latest
+
+      - name: Sign image with Cosign (keyless)
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
+      - name: Sign Docker Image
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes \
+            -a "github_actor=${{ github.actor }}" \
+            -a "run_id=${{ github.run_id }}" \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }}
+
+  # 🚀 DEPLOYMENT PIPELINE (STAGING)
+  deploy-staging:
+    needs: test-and-scan-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    permissions:
+      contents: write # Needed for auto-commit back to the branch
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Update Helm values for staging
         run: |
@@ -120,17 +134,16 @@ jobs:
         with:
           commit_message: "chore: update staging image to ${{ github.sha }}"
           file_pattern: 'charts/payday/values-staging.yaml'
-          branch: gitops-main
 
   # 🎯 PRODUCTION PROMOTION (Manual Approval + Canary)
   promote-to-prod:
-    needs: deploy-staging
+    needs: test-and-scan-build # Crucial Fix: Depend on build, not deploy-staging
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     environment: production # Requires manual approval in GitHub UI
     permissions:
       contents: read
-      id-token: write
+      id-token: write # For OIDC to AWS
     steps:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
@@ -145,10 +158,31 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-oidc
           aws-region: ${{ env.AWS_REGION }}
 
+      # Authenticate kubectl against your EKS cluster
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      # Install Argo Rollouts CLI plugin for kubectl fallback logic
+      - name: Install Argo Rollouts CLI
+        run: |
+          curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+          chmod +x ./kubectl-argo-rollouts-linux-amd64
+          sudo mv ./kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+
       - name: Update production Helm values
         run: |
           yq -i '.image.tag = "${{ github.sha }}"' \
-            charts/payday/values-prod.yaml
+            gitops-repo/charts/payday/values-prod.yaml
+
+      # 👇 ADDED THIS STEP: Actually save the changes back to your GitOps repository!
+      - name: Commit and Push GitOps Manifest changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(prod): promote image tag to ${{ github.sha }}"
+          file_pattern: 'charts/payday/values-prod.yaml'
+          branch: gitops-main
+      # Because we checked out with a custom token, this action natively uses it to push back
 
       - name: Trigger Argo CD sync for production
         uses: argoproj/argo-cd-action@v0.4.0
@@ -160,9 +194,10 @@ jobs:
 
       - name: Wait for canary analysis (Argo Rollouts)
         run: |
-          # Poll rollout status until stable or failed
+          # Poll rollout status until stable or failed using the installed plugin
           for i in {1..30}; do
             STATUS=$(kubectl get rollout payday-payments-app-prod -n prod -o jsonpath='{.status.phase}')
+            echo "Current Canary Status: $STATUS"
             if [ "$STATUS" = "Healthy" ]; then
               echo "✅ Canary promotion successful"
               exit 0
@@ -175,3 +210,4 @@ jobs:
           done
           echo "⏰ Timeout waiting for canary"
           exit 1
+
