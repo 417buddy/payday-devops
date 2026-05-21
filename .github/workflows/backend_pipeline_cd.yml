@@ -16,7 +16,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}/payday-api
   CLUSTER_NAME: payday-eks
   AWS_REGION: us-east-2
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.13'
   WORKING_DIR: payday-devops/app/backend
 
 jobs:
