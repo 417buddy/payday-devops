@@ -173,14 +173,14 @@ jobs:
       - name: Update production Helm values
         run: |
           yq -i '.image.tag = "${{ github.sha }}"' \
-            gitops-repo/charts/payday/values-prod.yaml
+            k8s/helm/payday-app/values.yaml
 
       # 👇 ADDED THIS STEP: Actually save the changes back to your GitOps repository!
       - name: Commit and Push GitOps Manifest changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(prod): promote image tag to ${{ github.sha }}"
-          file_pattern: 'charts/payday/values-prod.yaml'
+          file_pattern: 'k8s/helm/payday-app/values.yaml'
           branch: gitops-main
       # Because we checked out with a custom token, this action natively uses it to push back
 
@@ -189,21 +189,21 @@ jobs:
         with:
           server: ${{ secrets.ARGOCD_SERVER }}
           token: ${{ secrets.ARGOCD_TOKEN }}
-          app: payday-payments-app-prod
+          app: payday-app-prod
           command: app sync --prune
 
       - name: Wait for canary analysis (Argo Rollouts)
         run: |
           # Poll rollout status until stable or failed using the installed plugin
           for i in {1..30}; do
-            STATUS=$(kubectl get rollout payday-payments-app-prod -n prod -o jsonpath='{.status.phase}')
+            STATUS=$(kubectl get rollout payday-app-prod -n prod -o jsonpath='{.status.phase}')
             echo "Current Canary Status: $STATUS"
             if [ "$STATUS" = "Healthy" ]; then
               echo "✅ Canary promotion successful"
               exit 0
             elif [ "$STATUS" = "Degraded" ]; then
               echo "❌ Canary failed - triggering auto-rollback"
-              kubectl argo rollouts abort payday-payments-app-prod -n prod
+              kubectl argo rollouts abort payday-app-prod -n prod
               exit 1
             fi
             sleep 30
