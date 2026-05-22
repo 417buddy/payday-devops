@@ -284,13 +284,13 @@ jobs:
       - name: Update production Helm values
         run: |
           yq -i '.image.tag = "${{ github.sha }}"' \
-            gitops-repo/charts/payday-api/values-prod.yaml
+            k8s/helm/payday-api/values.yaml
 
       - name: Commit updated production manifest
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: promote backend to prod - ${{ github.sha }}"
-          file_pattern: 'gitops-repo/charts/payday-api/values-prod.yaml'
+          file_pattern: 'k8s/helm/payday-app/values.yaml'
           branch: gitops-main
           repository: gitops-repo
 
