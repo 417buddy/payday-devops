@@ -11,8 +11,8 @@ VALID_EVENTS = {"payment.completed", "payment.failed", "payment.refunded"}
 @bp.post("/webhooks")
 @require_api_key
 def register_webhook():
-    body   = request.get_json(silent=True) or {}
-    url    = body.get("url", "")
+    body = request.get_json(silent=True) or {}
+    url = body.get("url", "")
     events = body.get("events", list(VALID_EVENTS))
 
     if not url or not re.match(r"^https?://", url):

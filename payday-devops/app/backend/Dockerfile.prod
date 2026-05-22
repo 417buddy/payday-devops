@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM python:3.11-alpine AS builder
+FROM python:3.13-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Final Runtime
-FROM python:3.11-alpine AS runtime
+FROM python:3.13-alpine AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
