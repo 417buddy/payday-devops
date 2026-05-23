@@ -198,13 +198,13 @@ jobs:
           branch: gitops-main
       # Because we checked out with a custom token, this action natively uses it to push back
 
+
       - name: Trigger Argo CD sync for production
-        uses: argoproj/argo-cd-action@v0.4.0
-        with:
-          server: ${{ secrets.ARGOCD_SERVER }}
-          token: ${{ secrets.ARGOCD_TOKEN }}
-          app: payday-app
-          command: app sync --prune
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} \
+           --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+           --insecure --grpc-web
+          argocd app sync payday-app --prune
 
       - name: Wait for canary analysis (Argo Rollouts)
         run: |
