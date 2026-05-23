@@ -265,11 +265,11 @@ jobs:
           kubectl run migration-prod-${{ github.run_id }} \
             --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }} \
             --restart=Never \
-            --env="DATABASE_HOST=${{ secrets.PROD_DB_HOST }}" \
-            --env="DATABASE_PORT=5432" \
-            --env="DATABASE_NAME=${{ secrets.PROD_DB_NAME }}" \
-            --env="DATABASE_USER=${{ secrets.PROD_DB_USER }}" \
-            --env="DATABASE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" \
+            --env="DB_HOST=${{ secrets.PROD_DB_HOST }}" \
+            --env="DB_PORT=5432" \
+            --env="DB_NAME=${{ secrets.PROD_DB_NAME }}" \
+            --env="DB_USER=${{ secrets.PROD_DB_USER }}" \
+            --env="DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" \
             --env="SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" \
             -n prod \
             --command -- sh -c "flask --app run db upgrade"
