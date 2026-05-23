@@ -35,7 +35,7 @@ Common labels
 */}}
 {{- define "payday-app.labels" -}}
 helm.sh/chart: {{ include "payday-app.chart" . }}
-{{ include "payday-api.selectorLabels" . }}
+{{ include "payday-app.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
