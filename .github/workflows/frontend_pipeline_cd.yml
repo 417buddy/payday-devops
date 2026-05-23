@@ -149,6 +149,12 @@ jobs:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
 
+      - name: Downcase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=${IMAGE_NAME,,}" >> $GITHUB_ENV
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -169,7 +175,7 @@ jobs:
       - name: Deploy to ArgoCD
         run: |
           argocd login ${{ secrets.ARGOCD_SERVER }} \
-           --auth-token=${{ secrets.ARGOCD_AUTH_TOKEN }} \
+           --auth-token=${{ secrets.ARGOCD_TOKEN }} \
            --insecure --grpc-web --skip-test-tls
           argocd app sync payday-app
           argocd app wait payday-app --health

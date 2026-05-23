@@ -245,6 +245,13 @@ jobs:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
 
+      - name: Downcase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=${IMAGE_NAME,,}" >> $GITHUB_ENV
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
