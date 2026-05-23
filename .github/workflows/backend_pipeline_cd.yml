@@ -219,6 +219,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      packages: write
 
     steps:
       - name: Checkout GitOps repo
@@ -267,6 +268,7 @@ jobs:
           commit_message: "chore: promote backend to prod - ${{ github.sha }}"
           file_pattern: 'k8s/helm/payday-app/values.yaml'
           branch: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger Argo CD sync for production
         env:
