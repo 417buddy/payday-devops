@@ -180,27 +180,6 @@ jobs:
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
 
-      - name: Run Alembic migrations (staging)
-        run: |
-          kubectl run migration-${{ github.run_id }} \
-            --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }} \
-            --restart=Never \
-            --env="DATABASE_HOST=${{ secrets.STAGING_DB_HOST }}" \
-            --env="DATABASE_PORT=5432" \
-            --env="DATABASE_NAME=${{ secrets.STAGING_DB_NAME }}" \
-            --env="DATABASE_USER=${{ secrets.STAGING_DB_USER }}" \
-            --env="DATABASE_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}" \
-            --env="SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }}" \
-            -n staging \
-            --command -- sh -c "flask --app run db upgrade"
-          
-          echo "Waiting for migration pod to resolve..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/migration-${{ github.run_id }} -n staging --timeout=120s || \
-          kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/migration-${{ github.run_id }} -n staging --timeout=1s
-          
-          kubectl logs migration-${{ github.run_id }} -n staging
-          kubectl delete pod migration-${{ github.run_id }} -n staging
-
       - name: Update Helm values for staging
         run: |
           yq -i '.image.tag = "${{ github.sha }}"' \
@@ -261,27 +240,6 @@ jobs:
       - name: Update Kubeconfig Context
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.CLUSTER_NAME }}
-
-      - name: Run Alembic migrations (production)
-        run: |
-          kubectl run migration-prod-${{ github.run_id }} \
-            --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }} \
-            --restart=Never \
-            --env="DB_HOST=${{ secrets.PROD_DB_HOST }}" \
-            --env="DB_PORT=5432" \
-            --env="DB_NAME=${{ secrets.PROD_DB_NAME }}" \
-            --env="DB_USER=${{ secrets.PROD_DB_USER }}" \
-            --env="DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" \
-            --env="SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" \
-            -n payday \
-            --command -- sh -c "flask --app run db upgrade"
-          
-          echo "Waiting for migration pod to resolve..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/migration-prod-${{ github.run_id }} -n payday --timeout=180s || \
-          kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/migration-prod-${{ github.run_id }} -n payday --timeout=1s
-          
-          kubectl logs migration-prod-${{ github.run_id }} -n payday
-          kubectl delete pod migration-prod-${{ github.run_id }} -n payday
 
       - name: Install ArgoCD CLI
         run: |
