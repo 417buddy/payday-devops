@@ -214,22 +214,21 @@ jobs:
         run: |
           argocd app sync payday-app --prune
 
-      - name: Wait for canary analysis (Argo Rollouts)
+      - name: Wait for canary rollout
         run: |
-          # Poll rollout status until stable or failed using the installed plugin
-          for i in {1..30}; do
-            STATUS=$(kubectl get rollout payday-app -n payday -o jsonpath='{.status.phase}')
-            echo "Current Canary Status: $STATUS"
-            if [ "$STATUS" = "Healthy" ]; then
-              echo "✅ Canary promotion successful"
-              exit 0
-            elif [ "$STATUS" = "Degraded" ]; then
-              echo "❌ Canary failed - triggering auto-rollback"
-              kubectl argo rollouts abort payday-app-prod -n payday
-              exit 1
-            fi
-            sleep 30
-          done
-          echo "⏰ Timeout waiting for canary"
-          exit 1
-
+         for i in {1..30}; do
+          STATUS=$(kubectl argo rollouts get rollout payday-app -n payday \
+           -o jsonpath='{.status.phase}')
+          echo "Canary status: $STATUS"
+          if [ "$STATUS" = "Healthy" ]; then
+           echo "Rollout successful"
+           exit 0
+          elif [ "$STATUS" = "Degraded" ]; then
+           echo "Rollout failed - aborting"
+           kubectl argo rollouts abort payday-app -n payday
+           exit 1
+          fi
+          sleep 30
+         done
+         echo "Timeout waiting for rollout"
+         exit 1
