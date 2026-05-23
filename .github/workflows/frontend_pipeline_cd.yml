@@ -163,6 +163,20 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Deploy to ArgoCD
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} \
+           --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }} \
+           --insecure --grpc-web
+          argocd app sync payday-app
+          argocd app wait payday-app --health
+
       # Install Argo Rollouts CLI plugin for kubectl fallback logic
       - name: Install Argo Rollouts CLI
         run: |
@@ -189,14 +203,14 @@ jobs:
         with:
           server: ${{ secrets.ARGOCD_SERVER }}
           token: ${{ secrets.ARGOCD_TOKEN }}
-          app: payday-app-prod
+          app: payday-app
           command: app sync --prune
 
       - name: Wait for canary analysis (Argo Rollouts)
         run: |
           # Poll rollout status until stable or failed using the installed plugin
           for i in {1..30}; do
-            STATUS=$(kubectl get rollout payday-app-prod -n prod -o jsonpath='{.status.phase}')
+            STATUS=$(kubectl get rollout payday-app -n prod -o jsonpath='{.status.phase}')
             echo "Current Canary Status: $STATUS"
             if [ "$STATUS" = "Healthy" ]; then
               echo "✅ Canary promotion successful"
