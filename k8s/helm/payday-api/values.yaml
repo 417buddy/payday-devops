@@ -16,6 +16,27 @@ image:
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 
+env:
+  - name: DB_HOST
+    value: "postgres-postgresql.payday.svc.cluster.local"
+  - name: DB_PORT
+    value: "5432"
+  - name: DB_NAME
+    value: "payday_db"
+  - name: DB_USER
+    value: "payday"
+  - name: DB_SSLMODE
+    value: "disable"
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres-postgresql
+        key: password
+  - name: SECRET_KEY
+    value: "cUvigYR4hmtxrHySIAaPdxbQMpqtIRFkcaofWAgLN0c"
+  - name: FLASK_ENV
+    value: "production"
+
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
