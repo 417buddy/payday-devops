@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "payday-api.fullname" . }}
   labels:
@@ -43,7 +43,7 @@ spec:
           {{- with .Values.env }}
           env:
             {{- toYaml . | nindent 12 }}
-          {{- end }}  
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -80,3 +80,11 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: {duration: 30s}
+        - setWeight: 50
+        - pause: {duration: 30s}
+        - setWeight: 100
