@@ -281,6 +281,20 @@ jobs:
           kubectl logs migration-prod-${{ github.run_id }} -n prod
           kubectl delete pod migration-prod-${{ github.run_id }} -n prod
 
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Deploy to ArgoCD
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} \
+           --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }} \
+           --insecure --grpc-web
+          argocd app sync payday-api
+          argocd app wait payday-api --health
+
       - name: Update production Helm values
         run: |
           yq -i '.image.tag = "${{ github.sha }}"' \
@@ -299,7 +313,7 @@ jobs:
         with:
           server: ${{ secrets.ARGOCD_SERVER }}
           token: ${{ secrets.ARGOCD_TOKEN }}
-          app: payday-api-prod
+          app: payday-api
           command: app sync --prune
 
       - name: Install Argo Rollouts CLI Plugin
@@ -311,14 +325,14 @@ jobs:
       - name: Wait for canary analysis (Argo Rollouts)
         run: |
           for i in {1..30}; do
-            STATUS=$(kubectl get rollout payday-api-prod -n prod -o jsonpath='{.status.phase}')
+            STATUS=$(kubectl get rollout payday-api -n prod -o jsonpath='{.status.phase}')
             echo "Current Canary Status: $STATUS"
             if [ "$STATUS" = "Healthy" ]; then
               echo "Canary promotion successful"
               exit 0
             elif [ "$STATUS" = "Degraded" ]; then
               echo "Canary failed - triggering auto-rollback"
-              kubectl argo rollouts abort payday-api-prod -n prod
+              kubectl argo rollouts abort payday-api -n prod
               exit 1
             fi
             sleep 30
