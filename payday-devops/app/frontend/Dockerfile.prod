@@ -13,9 +13,10 @@ RUN npm ci --frozen-lockfile
 # Copy source code
 COPY . .
 
+ENV VITE_API_URL=/api
+
 # Build App
 RUN npm run build
-
 
 # STAGE 2
 FROM nginx:alpine
