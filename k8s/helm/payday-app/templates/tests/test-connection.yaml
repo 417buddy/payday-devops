@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "payday-api.fullname" . }}-test-connection"
+  name: "{{ include "payday-app.fullname" . }}-test-connection"
   labels:
-    {{- include "payday-api.labels" . | nindent 4 }}
+    {{- include "payday-app.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
 spec:
@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "payday-api.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "payday-app.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never
