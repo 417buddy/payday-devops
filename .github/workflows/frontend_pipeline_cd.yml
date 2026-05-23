@@ -142,8 +142,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: production # Requires manual approval in GitHub UI
     permissions:
-      contents: read
+      contents: write
       id-token: write # For OIDC to AWS
+      packages: write
 
     steps:
       - name: Checkout GitOps repo
@@ -200,6 +201,7 @@ jobs:
           commit_message: "chore(prod): promote image tag to ${{ github.sha }}"
           file_pattern: 'k8s/helm/payday-app/values.yaml'
           branch: main
+          token: ${{ secrets.GITHUB_TOKEN }}
       # Because we checked out with a custom token, this action natively uses it to push back
 
 
