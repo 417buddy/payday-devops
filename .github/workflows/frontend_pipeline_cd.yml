@@ -202,6 +202,7 @@ jobs:
           file_pattern: 'k8s/helm/payday-app/values.yaml'
           branch: main
           token: ${{ secrets.GITHUB_TOKEN }}
+          push_options: '--force'
       # Because we checked out with a custom token, this action natively uses it to push back
 
 

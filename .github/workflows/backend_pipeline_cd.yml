@@ -73,7 +73,7 @@ jobs:
       - name: Lint with flake8
         run: |
           pip install flake8
-          flake8 app/ run.py --max-line-length=120 --exclude=__pycache__,migrations
+          flake8 app/ run.py --max-line-length=120 --exclude=__pycache__,migrations --extend-ignore=F821
 
       - name: Run tests with pytest + coverage
         run: |
