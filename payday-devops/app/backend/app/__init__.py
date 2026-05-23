@@ -16,6 +16,8 @@ def create_app(config=Config):
     Migrate(app, db)
     CORS(app, origins=app.config["ALLOWED_ORIGINS"])
 
+    PrometheusMetrics(app)
+
     from .routes.transactions import bp as transactions_bp
     from .routes.analytics import bp as analytics_bp
     from .routes.webhooks import bp as webhooks_bp
