@@ -218,14 +218,14 @@ jobs:
         run: |
           # Poll rollout status until stable or failed using the installed plugin
           for i in {1..30}; do
-            STATUS=$(kubectl get rollout payday-app -n prod -o jsonpath='{.status.phase}')
+            STATUS=$(kubectl get rollout payday-app -n payday -o jsonpath='{.status.phase}')
             echo "Current Canary Status: $STATUS"
             if [ "$STATUS" = "Healthy" ]; then
               echo "✅ Canary promotion successful"
               exit 0
             elif [ "$STATUS" = "Degraded" ]; then
               echo "❌ Canary failed - triggering auto-rollback"
-              kubectl argo rollouts abort payday-app-prod -n prod
+              kubectl argo rollouts abort payday-app-prod -n payday
               exit 1
             fi
             sleep 30
