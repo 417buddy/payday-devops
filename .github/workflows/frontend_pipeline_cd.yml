@@ -144,13 +144,10 @@ jobs:
     permissions:
       contents: read
       id-token: write # For OIDC to AWS
+
     steps:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}-gitops
-          ref: gitops-main
-          token: ${{ secrets.GITOPS_TOKEN }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
