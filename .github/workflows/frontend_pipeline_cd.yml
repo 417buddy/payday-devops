@@ -219,10 +219,10 @@ jobs:
          for i in {1..30}; do
           STATUS=$(kubectl argo rollouts get rollout payday-app -n payday 2>&1 || true)
           echo "Canary status: $STATUS"
-          if [ "$STATUS" = "Healthy" ]; then
+          if echo "$STATUS" | grep -q "Status:.*Healthy"; then
            echo "Rollout successful"
            exit 0
-          elif [ "$STATUS" = "Degraded" ]; then
+          elif echo "$STATUS" | grep -q "Status:.*Degraded"; then
            echo "Rollout failed - aborting"
            kubectl argo rollouts abort payday-app -n payday
            exit 1
