@@ -199,7 +199,7 @@ jobs:
         with:
           commit_message: "chore(prod): promote image tag to ${{ github.sha }}"
           file_pattern: 'k8s/helm/payday-app/values.yaml'
-          branch: gitops-main
+          branch: main
       # Because we checked out with a custom token, this action natively uses it to push back
 
 

@@ -273,15 +273,15 @@ jobs:
             --env="DB_USER=${{ secrets.PROD_DB_USER }}" \
             --env="DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}" \
             --env="SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" \
-            -n prod \
+            -n payday \
             --command -- sh -c "flask --app run db upgrade"
           
           echo "Waiting for migration pod to resolve..."
-          kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/migration-prod-${{ github.run_id }} -n prod --timeout=180s || \
-          kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/migration-prod-${{ github.run_id }} -n prod --timeout=1s
+          kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/migration-prod-${{ github.run_id }} -n payday --timeout=180s || \
+          kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/migration-prod-${{ github.run_id }} -n payday --timeout=1s
           
-          kubectl logs migration-prod-${{ github.run_id }} -n prod
-          kubectl delete pod migration-prod-${{ github.run_id }} -n prod
+          kubectl logs migration-prod-${{ github.run_id }} -n payday
+          kubectl delete pod migration-prod-${{ github.run_id }} -n payday
 
       - name: Install ArgoCD CLI
         run: |
@@ -308,8 +308,7 @@ jobs:
         with:
           commit_message: "chore: promote backend to prod - ${{ github.sha }}"
           file_pattern: 'k8s/helm/payday-app/values.yaml'
-          branch: gitops-main
-          repository: gitops-repo
+          branch: main
 
       - name: Trigger Argo CD sync for production
         env:
