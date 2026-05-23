@@ -309,12 +309,11 @@ jobs:
           repository: gitops-repo
 
       - name: Trigger Argo CD sync for production
-        uses: argoproj/argo-cd-action@v0.4.0
-        with:
-          server: ${{ secrets.ARGOCD_SERVER }}
-          token: ${{ secrets.ARGOCD_TOKEN }}
-          app: payday-api
-          command: app sync --prune
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} \
+           --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+           --insecure --grpc-web
+          argocd app sync payday-api --prune
 
       - name: Install Argo Rollouts CLI Plugin
         run: |
