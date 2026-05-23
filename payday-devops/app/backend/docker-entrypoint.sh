@@ -4,8 +4,8 @@ set -e
 
 echo "Starting Taskapp Backend Container"
 
-echo "Waiting for database at $DATABASE_HOST:$DATABASE_PORT..."
-while ! nc -z $DATABASE_HOST $DATABASE_PORT; do
+echo "Waiting for database at $DB_HOST:$DB_PORT..."
+while ! nc -z $DB_HOST $DB_PORT; do
   sleep 0.1
 done
 
