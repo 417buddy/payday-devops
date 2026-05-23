@@ -14,7 +14,7 @@ class Config:
         port = os.environ.get("DB_PORT", "5432")
         name = os.environ.get("DB_NAME", "payday")
         sslmode = os.environ.get("DB_SSLMODE", "disable")
-        return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode={sslmode}"
+        return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode={sslmode}" # noqa: F821
 
 
 class TestConfig(Config):
