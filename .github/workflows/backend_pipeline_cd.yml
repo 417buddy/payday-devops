@@ -290,7 +290,7 @@ jobs:
       - name: Wait for canary rollout
         run: |
          for i in {1..30}; do
-          STATUS=$(kubectl argo rollouts get rollout payday-app -n payday --timeout 30s 2>&1 || true)
+          STATUS=$(kubectl argo rollouts get rollout payday-api -n payday 2>&1 || true)
           echo "Canary status: $STATUS"
           if [ "$STATUS" = "Healthy" ]; then
            echo "Rollout successful"
