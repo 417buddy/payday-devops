@@ -286,7 +286,7 @@ jobs:
         run: |
           argocd login ${{ secrets.ARGOCD_SERVER }} \
            --auth-token ${{ secrets.ARGOCD_AUTH_TOKEN }} \
-           --insecure --grpc-web
+           --insecure --grpc-web --skip-test-tls
           argocd app sync payday-api
           argocd app wait payday-api --health
 
@@ -307,7 +307,7 @@ jobs:
         run: |
           argocd login ${{ secrets.ARGOCD_SERVER }} \
            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-           --insecure --grpc-web
+           --insecure --grpc-web 
           argocd app sync payday-api --prune
 
       - name: Install Argo Rollouts CLI Plugin
