@@ -13,6 +13,7 @@ class Config:
         host = os.environ.get("DB_HOST", "localhost")
         port = os.environ.get("DB_PORT", "5432")
         name = os.environ.get("DB_NAME", "payday")
+        sslmode = os.environ.get("DB_SSLMODE", "disable")
         return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode={sslmode}"
 
 
