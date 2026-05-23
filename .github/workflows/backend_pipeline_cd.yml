@@ -290,10 +290,11 @@ jobs:
           sudo mv argocd /usr/local/bin/
 
       - name: Deploy to ArgoCD
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_OPTS: "--insecure --grpc-web"
         run: |
-          argocd login ${{ secrets.ARGOCD_SERVER }} \
-           --auth-token=${{ secrets.ARGOCD_AUTH_TOKEN }} \
-           --insecure --grpc-web --skip-test-tls
           argocd app sync payday-api
           argocd app wait payday-api --health
 
@@ -311,10 +312,11 @@ jobs:
           repository: gitops-repo
 
       - name: Trigger Argo CD sync for production
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_OPTS: "--insecure --grpc-web"
         run: |
-          argocd login ${{ secrets.ARGOCD_SERVER }} \
-           --auth-token=${{ secrets.ARGOCD_TOKEN }} \
-           --insecure --grpc-web --skip-test-tls
           argocd app sync payday-api --prune
 
       - name: Install Argo Rollouts CLI Plugin

@@ -173,12 +173,13 @@ jobs:
           sudo mv argocd /usr/local/bin/
 
       - name: Deploy to ArgoCD
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_OPTS: "--insecure --grpc-web"
         run: |
-          argocd login ${{ secrets.ARGOCD_SERVER }} \
-           --auth-token=${{ secrets.ARGOCD_TOKEN }} \
-           --insecure --grpc-web --skip-test-tls
           argocd app sync payday-app
-          argocd app wait payday-app --health
+          argocd app wait payday-app --health --timeout 120
 
       # Install Argo Rollouts CLI plugin for kubectl fallback logic
       - name: Install Argo Rollouts CLI
@@ -203,10 +204,11 @@ jobs:
 
 
       - name: Trigger Argo CD sync for production
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_OPTS: "--insecure --grpc-web"
         run: |
-          argocd login ${{ secrets.ARGOCD_SERVER }} \
-           --auth-token=${{ secrets.ARGOCD_TOKEN }} \
-           --insecure --grpc-web --skip-test-tls
           argocd app sync payday-app --prune
 
       - name: Wait for canary analysis (Argo Rollouts)
