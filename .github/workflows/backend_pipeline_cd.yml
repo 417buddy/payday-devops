@@ -244,11 +244,6 @@ jobs:
     steps:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}-gitops
-          ref: gitops-main
-          token: ${{ secrets.GITOPS_TOKEN }}
-          path: gitops-repo
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
