@@ -8,12 +8,12 @@ class Config:
 
     @staticmethod
     def get_sqlalchemy_url():
-        user = os.environ.get("DATABASE_USER", "postgres")
-        password = os.environ.get("DATABASE_PASSWORD", "postgres")
-        host = os.environ.get("DATABASE_HOST", "localhost")
-        port = os.environ.get("DATABASE_PORT", "5432")
-        name = os.environ.get("DATABASE_NAME", "payday")
-        return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode=require"
+        user = os.environ.get("DB_USER", "postgres")
+        password = os.environ.get("DB_PASSWORD", "postgres")
+        host = os.environ.get("DB_HOST", "localhost")
+        port = os.environ.get("DB_PORT", "5432")
+        name = os.environ.get("DB_NAME", "payday")
+        return f"postgresql://{user}:{password}@{host}:{port}/{name}?sslmode={sslmode}"
 
 
 class TestConfig(Config):
