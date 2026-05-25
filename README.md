@@ -110,8 +110,8 @@ Observability is designed to be Helm-based and aligned with the existing app-lev
 ### Operational intent
 
 - Prometheus scrapes application and cluster targets
-- Grafana provides dashboards for service health, request rate, latency, and rollout health
-- Alerting is used to notify on degraded health, failed rollouts, database issues, and workload saturation
+- Grafana provides dashboards visualization for service health, request rate, error rate, latency throughputs, and rollout health
+- Alerting is used to notify on degraded health, failed rollouts, database issues, and workload saturation through slack or AWS SNS
 
 ## PostgreSQL
 
@@ -169,7 +169,7 @@ This is the current production target footprint for the EKS worker pool. Because
 ## Quick references
 
 - Terraform: `terraform init`, `terraform plan`, `terraform apply`
-- Argo CD sync: `argocd app sync payday-api` and `argocd app sync payday-app`
+- ArgoCD sync: `argocd app sync payday-api` and `argocd app sync payday-app`
 - Rollout inspection: `kubectl argo rollouts get rollout payday-api -n payday`
 - Rollback: `kubectl argo rollouts abort payday-api -n payday`
 
