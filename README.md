@@ -1,13 +1,13 @@
 # Payday Fintech
 
-A secure, automated, and observable Kubernetes delivery platform for Payday's payments API. The repository combines Terraform, GitHub Actions, Argo CD, Argo Rollouts, Helm-based deployments, and a Helm-managed observability stack.
+A secure, automated, and observable Kubernetes delivery platform for Payday's payments API. The repository combines Terraform, GitHub Actions, ArgoCD, Argo Rollouts, Helm-based deployments, and a Helm-managed observability stack.
 
 ## Overview
 
 This repo provides a GitOps-style delivery path for the backend and frontend applications that power Payday. The current implementation includes:
 
 - GitHub Actions CI/CD for backend and frontend image build, test, scan, sign, and promotion
-- Argo CD application sync for production and staging GitOps workflows
+- ArgoCD application sync for production and staging GitOps workflows
 - Argo Rollouts canary deployments for safe promotion and rollback
 - Helm charts for backend and frontend deployments
 - Bitnami PostgreSQL referenced by the backend Helm chart
@@ -22,7 +22,7 @@ The platform follows a code-to-cluster flow:
 2. GitHub Actions builds and tests the backend or frontend
 3. Images are pushed to GHCR and signed with Cosign
 4. GitHub Actions updates the Helm values and triggers Argo CD sync
-5. Argo CD reconciles the cluster state
+5. ArgoCD reconciles the cluster state
 6. Argo Rollouts performs canary promotion and rollback
 7. Prometheus, Grafana, and alerting monitor health, capacity, and release quality
 
@@ -85,12 +85,12 @@ The frontend workflow:
 - scans the image with Trivy
 - signs the image with Cosign
 - updates GitOps Helm values for staging or production
-- syncs Argo CD
+- syncs ArgoCD
 - monitors rollout status using Argo Rollouts
 
-## Argo CD and Argo Rollouts
+## ArgoCD and Argo Rollouts
 
-Argo CD is the GitOps controller that reconciles the Helm charts into the cluster. The current application manifests live in:
+ArgoCD is the GitOps controller that reconciles the Helm charts into the cluster. The current application manifests live in:
 
 - `k8s/argocd-payday-api.yaml`
 - `k8s/argocd-payday-app.yaml`
@@ -110,7 +110,7 @@ Observability is designed to be Helm-based and aligned with the existing app-lev
 ### Operational intent
 
 - Prometheus scrapes application and cluster targets
-- Grafana provides dashboards visualization for service health, request rate, error rate, latency throughputs, and rollout health
+- Grafana provides dashboards visualization for the #4GoldenSignals; Latency, Throughputs, Error rates and Saturations
 - Alerting is used to notify on degraded health, failed rollouts, database issues, and workload saturation through slack or AWS SNS
 
 ## PostgreSQL
